@@ -62,31 +62,51 @@
 #'
 AnomalyDetectionTs <- function(x, max_anoms = 0.10, direction = 'pos',
                                alpha = 0.05, only_last = NULL, threshold = 'None',
-                               e_value = FALSE, longterm = FALSE, piecewise_median_period_weeks = 2, plot = FALSE,
-                               y_log = FALSE, xlabel = '', ylabel = 'count',
-                               title = NULL, verbose=FALSE, na.rm = FALSE){
+                               e_value = FALSE, longterm = FALSE, piecewise_median_period_weeks = 2, plot = TRUE,
+                               y_log = FALSE, xlabel = '', ylabel = '',
+                               title = NULL, verbose=FALSE, na.rm = FALSE,pdftitle=NULL)
+  {
+  
+  #dataFrame is going to be the dataFrame we use for the AD each time we perform it
+  dataFrame<-x
+  output <- list()
+  result<-list()
+  ending<-ncol(x)
+  
+  #set name of plot file
+  if(is.null(pdftitle)){
+    pdftitle<-"ChangeMyName.pdf"
+    }
+  else
+  {
+    pdf(paste(pdftitle,".pdf",sep=""))
+  }
+ 
+  
+  for (Idx in 2:ending)
+    
+    {
+    #set y axis label for plot
+    ylabel<-names(dataFrame[Idx])
+    #create dataframe for AD
+    x <- data.frame(dataFrame$Date, dataFrame[Idx])
+    colnames(x) <- c("timestamp", "count")
 
   # Check for supported inputs types
   if(!is.data.frame(x)){
     stop("data must be a single data frame.")
   } else {
-    if(ncol(x) != 2 || !is.numeric(x[[2]])){
-      stop("data must be a 2 column data.frame, with the first column being a set of timestamps, and the second coloumn being numeric values.")
-    }
+  
     # Format timestamps if necessary
     if (!(class(x[[1]])[1] == "POSIXlt")) {
       x <- format_timestamp(x)
     }
   }
-  # Rename data frame columns if necessary
-  if (any((names(x) == c("timestamp", "count")) == FALSE)) {
-    colnames(x) <- c("timestamp", "count")
-  }
-  
+
   if(!is.logical(na.rm)){
     stop("na.rm must be either TRUE (T) or FALSE (F)")
   }
-  
+
   # Deal with NAs in timestamps
   if(any(is.na(x$timestamp))){
     if(na.rm){
@@ -142,10 +162,8 @@ AnomalyDetectionTs <- function(x, max_anoms = 0.10, direction = 'pos',
   }
   if(is.null(title)){
     title <- ""
-  } else {
-    title <- paste(title, " : ", sep="")
-  }
-
+  } 
+ 
   # -- Main analysis: Perform S-H-ESD
 
   # Derive number of observations in a single day.
@@ -164,6 +182,7 @@ AnomalyDetectionTs <- function(x, max_anoms = 0.10, direction = 'pos',
   # Aggregate data to minutely if secondly
   if(gran == "sec"){
     x <- format_timestamp(aggregate(x[2], format(x[1], "%Y-%m-%d %H:%M:00"), eval(parse(text="sum"))))
+    gran <- "min"
   }
 
   period = switch(gran,
@@ -294,15 +313,48 @@ AnomalyDetectionTs <- function(x, max_anoms = 0.10, direction = 'pos',
   # Calculate number of anomalies as a percentage
   anom_pct <- (length(all_anoms[[2]]) / num_obs) * 100
 
-  # If there are no anoms, then let's exit
-  if(anom_pct == 0){
-    if(verbose) message("No anomalies detected.")
-    return (list("anoms"=data.frame(), "plot"=plot.new()))
-  }
+  # If there are no anoms, plot only raw data
+   if(anom_pct == 0){
+       # -- Build title for plots utilizing parameters set by user
+      # plot_title <-  paste(title, round(anom_pct, digits=2), "% Anomalies (alpha=", alpha, ", direction=", direction,")", sep="")
+     plot_title <-  paste("Anomaly Detection results for",ylabel) 
+     if(longterm){
+         plot_title <- paste(plot_title, ", longterm=T", sep="")
+       }
+       
+       # -- Plot raw time series data
+       color_name <- paste("\"", title, "\"", sep="")
+       alpha <- 0.8
+       if(!is.null(only_last)){
+         xgraph <- ggplot2::ggplot(x_subset_week, ggplot2::aes_string(x="timestamp", y="count")) + ggplot2::theme_bw() + ggplot2::theme(panel.grid.major = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(), text=ggplot2::element_text(size = 14))
+         xgraph <- xgraph + ggplot2::geom_line(data=x_subset_week, ggplot2::aes_string(colour=color_name), alpha=alpha*.33) + ggplot2::geom_line(data=x_subset_single_day, ggplot2::aes_string(color=color_name), alpha=alpha)
+         week_rng = get_range(x_subset_week, index=2, y_log=y_log)
+         day_rng = get_range(x_subset_single_day, index=2, y_log=y_log)
+         yrange = c(min(week_rng[1],day_rng[1]), max(week_rng[2],day_rng[2]))
+         xgraph <- add_day_labels_datetime(xgraph, breaks=breaks, start=as.POSIXlt(min(x_subset_week[[1]]), tz="UTC"), end=as.POSIXlt(max(x_subset_single_day[[1]]), tz="UTC"), days_per_line=num_days_per_line)
+         xgraph <- xgraph + ggplot2::labs(x=xlabel, y=names(dataFrame[Idx]), title=plot_title)
+       }else{
+         xgraph <- ggplot2::ggplot(x, ggplot2::aes_string(x="timestamp", y="count")) + ggplot2::theme_bw() + ggplot2::theme(panel.grid.major = ggplot2::element_line(colour = "gray60"), panel.grid.major.y = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(), text=ggplot2::element_text(size = 14))
+         xgraph <- xgraph + ggplot2::geom_line(data=x, ggplot2::aes_string(colour=color_name), alpha=alpha)
+         yrange <- get_range(x, index=2, y_log=y_log)
+         xgraph <- xgraph + ggplot2::scale_x_datetime(labels=function(x) ifelse(as.POSIXlt(x, tz="UTC")$hour != 0,strftime(x, format="%kh", tz="UTC"), strftime(x, format="%b %e", tz="UTC")),
+                                                      expand=c(0,0))
+         xgraph <- xgraph + ggplot2::labs(x=xlabel, y=ylabel, title=plot_title)
+       }
+  
+       # Hide legend
+       xgraph <- xgraph + ggplot2::theme(legend.position="none")
+       
+       # Use log scaling if set by user
+       xgraph <- xgraph + add_formatted_y(yrange, y_log=y_log)
+       
+   }
 
-  if(plot){
+     
+  else{
     # -- Build title for plots utilizing parameters set by user
-    plot_title <-  paste(title, round(anom_pct, digits=2), "% Anomalies (alpha=", alpha, ", direction=", direction,")", sep="")
+   # plot_title <-  paste(title, round(anom_pct, digits=2), "% Anomalies (alpha=", alpha, ", direction=", direction,")", sep="")
+    plot_title<- paste("Anomaly Detection results for", ylabel)
     if(longterm){
       plot_title <- paste(plot_title, ", longterm=T", sep="")
     }
@@ -317,7 +369,7 @@ AnomalyDetectionTs <- function(x, max_anoms = 0.10, direction = 'pos',
       day_rng = get_range(x_subset_single_day, index=2, y_log=y_log)
       yrange = c(min(week_rng[1],day_rng[1]), max(week_rng[2],day_rng[2]))
       xgraph <- add_day_labels_datetime(xgraph, breaks=breaks, start=as.POSIXlt(min(x_subset_week[[1]]), tz="UTC"), end=as.POSIXlt(max(x_subset_single_day[[1]]), tz="UTC"), days_per_line=num_days_per_line)
-      xgraph <- xgraph + ggplot2::labs(x=xlabel, y=ylabel, title=plot_title)
+      xgraph <- xgraph + ggplot2::labs(x=xlabel, y=names(dataFrame[Idx]), title=plot_title)
     }else{
       xgraph <- ggplot2::ggplot(x, ggplot2::aes_string(x="timestamp", y="count")) + ggplot2::theme_bw() + ggplot2::theme(panel.grid.major = ggplot2::element_line(colour = "gray60"), panel.grid.major.y = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(), text=ggplot2::element_text(size = 14))
       xgraph <- xgraph + ggplot2::geom_line(data=x, ggplot2::aes_string(colour=color_name), alpha=alpha)
@@ -341,10 +393,10 @@ AnomalyDetectionTs <- function(x, max_anoms = 0.10, direction = 'pos',
 
   # Fix to make sure date-time is correct and that we retain hms at midnight
   all_anoms[[1]] <- format(all_anoms[[1]], format="%Y-%m-%d %H:%M:%S")
-  
+
   # Store expected values if set by user
   if(e_value) {
-    anoms <- data.frame(timestamp=all_anoms[[1]], anoms=all_anoms[[2]], 
+    anoms <- data.frame(timestamp=all_anoms[[1]], anoms=all_anoms[[2]],
                         expected_value=subset(seasonal_plus_trend[[2]], as.POSIXlt(seasonal_plus_trend[[1]], tz="UTC") %in% all_anoms[[1]]),
                         stringsAsFactors=FALSE)
   } else {
@@ -355,10 +407,20 @@ AnomalyDetectionTs <- function(x, max_anoms = 0.10, direction = 'pos',
   # TODO: Make sure we keep original datetime format and timezone.
   anoms$timestamp <- as.POSIXlt(anoms$timestamp, tz="UTC")
 
-  # Lastly, return anoms and optionally the plot if requested by the user
+#Make the final plots whether they have anomalies or not
   if(plot){
-    return (list(anoms = anoms, plot = xgraph))
-  } else {
-    return (list(anoms = anoms, plot = plot.new()))
+    output<-list(anoms=anoms, plot=xgraph)
+    result[[Idx-1]]<-output
+    print(result[[Idx-1]]$plot)
   }
-}
+  else{
+    output<-list(anoms = anoms, plot = NULL)
+   result[[Idx-1]]<-output
+  }
+  
+  
+  }
+ dev.off()
+return(result)
+  
+  }
