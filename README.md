@@ -96,12 +96,12 @@ After running the function, it will create a pdf file called "Graph.pdf" in our 
 Let's open it, our AD will look like the following:
 
 
-![Fig 1](https://github.com/mobiuscreek/AnomalyDetection/blob/master/figs/Fig1.png)
+<img src="https://github.com/mobiuscreek/AnomalyDetection/blob/master/figs/Fig1.png" width="300" height="300">
 
 
+--------------
 
-
-For a more detailed explanation visit on the AD:
+For a more detailed explanation on AD see:
 
 https://github.com/twitter/AnomalyDetection
 
