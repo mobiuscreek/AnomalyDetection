@@ -69,7 +69,7 @@ Here's a part of our sample dataset and its columns:
 
 View(df)
 
-![Fig_2](https://github.com/mobiuscreek/AnomalyDetection/blob/master/figs/Fig2.png)
+![Fig 2](https://github.com/mobiuscreek/AnomalyDetection/blob/master/figs/Fig2.png)
 
 ```
 
@@ -96,13 +96,13 @@ Let's open it, our AD will look like the following:
 
 
 ```
-![Fig_1](https://github.com/mobiuscreek/AnomalyDetection/blob/master/figs/Fig1.png)
+![Fig 1](https://github.com/mobiuscreek/AnomalyDetection/blob/master/figs/Fig1.png)
 
 ```
 
 
 
-For a more detailed explanation visit on the AD algorithm:
+For a more detailed explanation visit on the AD:
 
 https://github.com/twitter/AnomalyDetection
 
