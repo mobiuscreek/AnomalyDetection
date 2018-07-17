@@ -68,10 +68,11 @@ Here's a part of our sample dataset and its columns:
 ```
 
 View(df)
+```
 
 ![Fig 2](https://github.com/mobiuscreek/AnomalyDetection/blob/master/figs/Fig2.png)
 
-```
+
 
 Notice that datetime column should be in a single column otherwise we will get an error. For the moment merging the two columns should suffice.
 
@@ -95,10 +96,8 @@ After running the function, it will create a pdf file called "Graph.pdf" in our 
 Let's open it, our AD will look like the following:
 
 
-```
 ![Fig 1](https://github.com/mobiuscreek/AnomalyDetection/blob/master/figs/Fig1.png)
 
-```
 
 
 
@@ -108,6 +107,7 @@ https://github.com/twitter/AnomalyDetection
 
 
 <a name="foot1">1</a>: http://www.bgs.ac.uk/research/groundwater/shaleGas/monitoring/lancsDataSummary.html
+
 
 
 ## Copyright and License
