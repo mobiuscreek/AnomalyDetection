@@ -1,4 +1,4 @@
-# AnomalyDetection R package
+# AnomalyDetection R package for multi-dimensional arrays
 
 [![Build Status](https://travis-ci.org/twitter/AnomalyDetection.png)](https://travis-ci.org/twitter/AnomalyDetection)
 [![Pending Pull-Requests](http://githubbadges.herokuapp.com/twitter/AnomalyDetection/pulls.svg?style=flat)](https://github.com/twitter/AnomalyDetection/pulls)
